@@ -1,0 +1,247 @@
+namespace JPS;
+
+protected var g_GConfig:ALittle.IJsonConfig;
+
+class GCenter
+{
+    private ALittle.DisplayLayout _main_layer;
+    private ALittle.DisplayLayout _dialog_layer;
+
+    private ALittle.DisplayLayout _grid_container;
+    private ALittle.DisplayLayout _jump_container;
+    private ALittle.DisplayLayout _block_container;
+    private ALittle.DisplayLayout _line_container;
+
+    private ALittle.Quad _start_quad;
+    private int _start_x = 0;
+    private int _start_y = 0;
+    private ALittle.DisplayObject _start_label;
+
+    private ALittle.Quad _end_quad;
+    private int _end_x = 0;
+    private int _end_y = 0;
+    private ALittle.DisplayObject _end_label;
+
+    private ALittle.DisplayObject _cost_time;
+    
+    private int _grid_len = 30;
+    private int _grid_frame = 2;
+    private int _map_width = 0;
+    private int _map_height = 0;
+
+    private carp.CarpSquareJPS _jps;
+
+    public ctor()
+    {
+    }
+
+    public fun Setup()
+    {
+        // 获取配置信息
+        g_GConfig = ALittle.CreateConfigSystem(g_ModuleBasePath.."/User.cfg");
+        // 生成随机数种子
+        ALittle.Math_RandomSeed(ALittle.Time_GetCurTime());
+        // 设置1个线程
+        ALittle.System_SetThreadCount(1);
+
+        // 创建主层
+        this._main_layer = new ALittle.DisplayLayout(g_Control);
+        this._main_layer.width_type = ALittle.UIEnumTypes.SIZE_MARGIN;
+        this._main_layer.height_type = ALittle.UIEnumTypes.SIZE_MARGIN;
+        g_LayerGroup.AddChild(this._main_layer, null);
+        this._dialog_layer = new ALittle.DisplayLayout(g_Control);
+        this._dialog_layer.width_type = ALittle.UIEnumTypes.SIZE_MARGIN;
+        this._dialog_layer.height_type = ALittle.UIEnumTypes.SIZE_MARGIN;
+        g_LayerGroup.AddChild(this._dialog_layer, null);
+
+        this.InitScene();
+    }
+
+    private fun InitScene()
+    {
+        g_Control.CreateControl{ALittle.DisplayLayout}("sand_table_scn", this, this._main_layer);
+
+        {
+            var max_width = this._grid_container.width;
+            var offset_x = 0;
+            while (offset_x < max_width)
+            {
+                var quad = new ALittle.Quad(g_Control);
+                quad.width = this._grid_frame;
+                quad.height_type = ALittle.UIEnumTypes.SIZE_MARGIN;
+                quad.x = offset_x;
+                quad.red = 179 / 255;
+                quad.green = 179 / 255;
+                quad.blue = 179 / 255;
+                this._grid_container.AddChild(quad);
+                offset_x += this._grid_len;
+            }
+
+            this._map_width = ALittle.Math_Floor(max_width / this._grid_len);
+        }
+
+        {
+            var max_height = this._grid_container.height;
+            var offset_y = 0;
+            while (offset_y < max_height)
+            {
+                var quad = new ALittle.Quad(g_Control);
+                quad.height = this._grid_frame;
+                quad.width_type = ALittle.UIEnumTypes.SIZE_MARGIN;
+                quad.y = offset_y;
+                quad.red = 179 / 255;
+                quad.green = 179 / 255;
+                quad.blue = 179 / 255;
+                this._grid_container.AddChild(quad);
+                offset_y += this._grid_len;
+            }
+
+            this._map_height = ALittle.Math_Floor(max_height / this._grid_len);
+        }
+
+        this.SetStartQuad(3 * this._grid_len, 12 * this._grid_len);
+        this.SetEndQuad(16 * this._grid_len, 12 * this._grid_len);
+
+        this._cost_time.text = "--";
+
+        this._jps = new carp.CarpSquareJPS(this._map_width, this._map_height);
+    }
+
+    private fun HandleStartQuadDrag(ALittle.UIButtonDragEvent event)
+    {
+        this.SetStartQuad(event.abs_x, event.abs_y);
+    }
+
+    private fun HandleEndQuadDrag(ALittle.UIButtonDragEvent event)
+    {
+        this.SetEndQuad(event.abs_x, event.abs_y);
+    }
+
+    private fun SetStartQuad(double x, double y)
+    {
+        var col = ALittle.Math_Floor(x / this._grid_len);
+        var row = ALittle.Math_Floor(y / this._grid_len);
+        if (this._start_x == col && this._start_y == row) return;
+
+        this._start_x = col;
+        this._start_y = row;
+        this._start_quad.x = col * this._grid_len + this._grid_frame;
+        this._start_quad.y = row * this._grid_len + this._grid_frame;
+        this._start_label.text = "("..this._start_x..", "..this._start_y..")";
+    }
+
+    private fun SetEndQuad(double x, double y)
+    {
+        var col = ALittle.Math_Floor(x / this._grid_len);
+        var row = ALittle.Math_Floor(y / this._grid_len);
+        if (this._end_x == col && this._end_y == row) return;
+
+        this._end_x = col;
+        this._end_y = row;
+        this._end_quad.x = col * this._grid_len + this._grid_frame;
+        this._end_quad.y = row * this._grid_len + this._grid_frame;
+        this._end_label.text = "("..this._end_x..", "..this._end_y..")";
+    }
+
+    private fun HandleStartClick(ALittle.UIClickEvent event)
+    {
+        var start_time = ALittle.System_GetCurMSTime();
+        var result, x_list, y_list = this._jps.SearchRoute(this._start_x, this._start_y, this._end_x, this._end_y);
+        var end_time = ALittle.System_GetCurMSTime();
+
+        this._cost_time.text = (end_time - start_time).."ms";
+
+        this._jump_container.RemoveAllChild();
+        this._line_container.RemoveAllChild();
+
+        if (result)
+        {
+            var pre_x:int = null;
+            var pre_y:int = null;
+            for (var index, x in x_list)
+            {
+                var y = y_list[index];
+
+                var quad = new ALittle.Quad(g_Control);
+                quad.width = this._start_quad.width;
+                quad.height = this._start_quad.height;
+                quad.red = 208 / 255;
+                quad.green = 208 / 255;
+                quad.blue = 251 / 255;
+
+                quad.x = x * this._grid_len + this._grid_frame;
+                quad.y = y * this._grid_len + this._grid_frame;
+
+                this._jump_container.AddChild(quad);
+
+                if (pre_x != null)
+                {
+                    var start_x = pre_x * this._grid_len + this._grid_len / 2;
+                    var start_y = pre_y * this._grid_len + this._grid_len / 2;
+                    var end_x = x * this._grid_len + this._grid_len / 2;
+                    var end_y = y * this._grid_len + this._grid_len / 2;
+                    
+                    var line = new ALittle.Quad(g_Control);
+                    line.SetSizeAsLine(this._grid_frame, start_x, start_y, end_x, end_y);
+                    line.red = 254 / 255;
+                    line.green = 193 / 255;
+                    line.blue = 133 / 255;
+                    line.SetPosAsLine(start_x, start_y, end_x, end_y);
+                    this._line_container.AddChild(line);
+                }
+
+                pre_x = x;
+                pre_y = y;
+            }
+        }
+    }
+
+    private fun HandleBlockQuadDrag(ALittle.UIButtonDragEvent event)
+    {
+        this.SetBlock(event.abs_x, event.abs_y);
+    }
+
+    private fun HandleBlockQuadClick(ALittle.UILButtonDownEvent event)
+    {
+        this.SetBlock(event.abs_x, event.abs_y);
+    }
+
+    private fun SetBlock(double x, double y)
+    {
+        var col = ALittle.Math_Floor(x / this._grid_len);
+        var row = ALittle.Math_Floor(y / this._grid_len);
+        if (!this._jps.IsEmpty(col, row)) return;
+
+        this._cost_time.text = "--";
+        this._jump_container.RemoveAllChild();
+        this._line_container.RemoveAllChild();
+        this._jps.SetEmpty(col, row, true);
+
+        var quad = new ALittle.Quad(g_Control);
+        quad.width = this._start_quad.width;
+        quad.height = this._start_quad.height;
+        quad.red = 85 / 255;
+        quad.green = 85 / 255;
+        quad.blue = 85 / 255;
+
+        quad.x = col * this._grid_len + this._grid_frame;
+        quad.y = row * this._grid_len + this._grid_frame;
+
+        this._block_container.AddChild(quad);
+    }
+
+    private fun HandleClearClick(ALittle.UIClickEvent event)
+    {
+        this._cost_time.text = "--";
+        this._jump_container.RemoveAllChild();
+        this._line_container.RemoveAllChild();
+        this._block_container.RemoveAllChild();
+        this._jps.SetAllEmpty();
+    }
+
+    public fun Shutdown()
+    {
+    }
+}
+
+public var g_GCenter = new GCenter();
