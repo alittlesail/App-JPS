@@ -52,6 +52,11 @@ function JPS.GCenter:InitScene()
 			quad.green = 179 / 255
 			quad.blue = 179 / 255
 			self._grid_container:AddChild(quad)
+			local label = JPS.g_AUIPluginControl:CreateControl("usual_label")
+			label.text = ALittle.Math_Floor(offset_x / self._grid_len)
+			label.x = offset_x + self._grid_frame
+			label.y = self._grid_frame
+			self._grid_container:AddChild(label)
 			offset_x = offset_x + (self._grid_len)
 		end
 		self._map_width = ALittle.Math_Floor(max_width / self._grid_len)
@@ -68,6 +73,11 @@ function JPS.GCenter:InitScene()
 			quad.green = 179 / 255
 			quad.blue = 179 / 255
 			self._grid_container:AddChild(quad)
+			local label = JPS.g_AUIPluginControl:CreateControl("usual_label")
+			label.text = ALittle.Math_Floor(offset_y / self._grid_len)
+			label.x = self._grid_frame
+			label.y = offset_y + self._grid_frame
+			self._grid_container:AddChild(label)
 			offset_y = offset_y + (self._grid_len)
 		end
 		self._map_height = ALittle.Math_Floor(max_height / self._grid_len)

@@ -74,6 +74,13 @@ class GCenter
                 quad.green = 179 / 255;
                 quad.blue = 179 / 255;
                 this._grid_container.AddChild(quad);
+
+                var label = g_AUIPluginControl.CreateControl{ALittle.DisplayObject}("usual_label");
+                label.text = ALittle.Math_Floor(offset_x / this._grid_len);
+                label.x = offset_x + this._grid_frame;
+                label.y = this._grid_frame;
+                this._grid_container.AddChild(label);
+
                 offset_x += this._grid_len;
             }
 
@@ -93,6 +100,13 @@ class GCenter
                 quad.green = 179 / 255;
                 quad.blue = 179 / 255;
                 this._grid_container.AddChild(quad);
+
+                var label = g_AUIPluginControl.CreateControl{ALittle.DisplayObject}("usual_label");
+                label.text = ALittle.Math_Floor(offset_y / this._grid_len);
+                label.x = this._grid_frame;
+                label.y = offset_y + this._grid_frame;
+                this._grid_container.AddChild(label);
+
                 offset_y += this._grid_len;
             }
 
