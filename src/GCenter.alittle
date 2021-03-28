@@ -229,7 +229,7 @@ class GCenter
         this._cost_time.text = "--";
         this._jump_container.RemoveAllChild();
         this._line_container.RemoveAllChild();
-        this._jps.SetEmpty(col, row, true);
+        this._jps.SetEmpty(col, row, false);
 
         var quad = new ALittle.Quad(g_Control);
         quad.width = this._start_quad.width;
