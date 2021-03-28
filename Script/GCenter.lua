@@ -179,7 +179,7 @@ function JPS.GCenter:SetBlock(x, y)
 	self._cost_time.text = "--"
 	self._jump_container:RemoveAllChild()
 	self._line_container:RemoveAllChild()
-	self._jps:SetEmpty(col, row, true)
+	self._jps:SetEmpty(col, row, false)
 	local quad = ALittle.Quad(JPS.g_Control)
 	quad.width = self._start_quad.width
 	quad.height = self._start_quad.height
